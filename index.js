@@ -54,7 +54,7 @@ bot.on('text', async (ctx) => {
 
     try {
         // ✅ TeraBox API Call  
-        const apiUrl = `https://wdzone-terabox-api.vercel.app/api?url=${encodeURIComponent(messageText)}`;
+        const apiUrl = `https://unchinkywp.vercel.app//api?url=${encodeURIComponent(messageText)}`;
         const apiResponse = await fetch(apiUrl);
         const apiData = await apiResponse.json();
 
