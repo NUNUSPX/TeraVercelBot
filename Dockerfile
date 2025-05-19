@@ -20,7 +20,7 @@ COPY . .
 EXPOSE 8080
 
 # ✅ Increase File Upload Size Limit
-ENV MAX_UPLOAD_SIZE=50MB
+ENV MAX_UPLOAD_SIZE=800MB
 
 # ✅ Start the bot
 CMD ["npm", "start"]
