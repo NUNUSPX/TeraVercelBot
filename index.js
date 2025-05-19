@@ -16,7 +16,7 @@ app.listen(PORT, () => {
 });
 
 // ✅ Fixed Bot Token
-const BOT_TOKEN = '7176724743:AAGMfyVNniB8rrVOBKmxXztsKiqG22FE99k';
+const BOT_TOKEN = '7176724743:AAFi0TmkXogAydTQ5L5uALVBBjbJhZ_88k4';
 const bot = new Telegraf(BOT_TOKEN);
 
 // ✅ TeraBox URL Validation  
