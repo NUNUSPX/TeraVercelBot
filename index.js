@@ -16,14 +16,14 @@ app.listen(PORT, () => {
 });
 
 // ✅ Fixed Bot Token
-const BOT_TOKEN = '7176724743:AAFi0TmkXogAydTQ5L5uALVBBjbJhZ_88k4';
+const BOT_TOKEN = '6876560897:AAEVkkvsFirio_tYbBM8WDBg0giLgcsT89M';
 const bot = new Telegraf(BOT_TOKEN);
 
 // ✅ TeraBox URL Validation  
 const teraboxUrlRegex = /^https:\/\/(terabox\.com|1024terabox\.com|teraboxapp\.com|teraboxlink\.com|terasharelink\.com|terafileshare\.com)\/s\/[A-Za-z0-9-_]+$/;
 
 // ✅ Your Telegram Channel ID  
-const CHANNEL_ID = "-1002660709640"; // 🔹 এখানে আপনার চ্যানেলের আইডি বসান  
+const CHANNEL_ID = "-1002427880240"; // 🔹 এখানে আপনার চ্যানেলের আইডি বসান  
 
 // ✅ /start Command  
 bot.start((ctx) => {
