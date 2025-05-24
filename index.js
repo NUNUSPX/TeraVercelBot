@@ -4,7 +4,7 @@ import path from 'path';
 import axios from 'axios'; // Untuk HTTP requests
 
 // ✅ Bot Token & Channel ID (GANTI DENGAN MILIK ANDA)
-const BOT_TOKEN = '6876560897:AAEVkkvsFirio_tYbBM8WDBg0giLgcsT89M';
+const BOT_TOKEN = '6876560897:AAE5_R0YP8M8M3Hu2maggR9dQrJt4_z2EN8';
 const CHANNEL_ID = '-1004129850269'; 
 const bot = new Telegraf(BOT_TOKEN);
 
