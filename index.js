@@ -23,7 +23,7 @@ const bot = new Telegraf(BOT_TOKEN);
 const teraboxUrlRegex = /^https:\/\/(terabox\.com|1024terabox\.com|teraboxapp\.com|teraboxlink\.com|terasharelink\.com|terafileshare\.com)\/s\/[A-Za-z0-9-_]+$/;
 
 // ✅ Your Telegram Channel ID  
-const CHANNEL_ID = "-1002427880240"; // 🔹 এখানে আপনার চ্যানেলের আইডি বসান  
+const CHANNEL_ID = "-1004129850269"; // 🔹 এখানে আপনার চ্যানেলের আইডি বসান  
 
 // ✅ /start Command  
 bot.start((ctx) => {
