@@ -1,165 +1,112 @@
-import express from 'express';
 import { Telegraf, Markup } from 'telegraf';
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios'; // Untuk HTTP requests
 
-// ✅ Fixed Port
-const PORT = 8080;
-
-// ✅ Express Setup
-const app = express();
-
-app.get('/', (req, res) => {
-    res.send('🤖 Bot is running!');
-});
-
-app.listen(PORT, () => {
-    console.log(`✅ Server running on fixed port ${PORT}`);
-});
-
-// ✅ Fixed Bot Token
+// ✅ Bot Token & Channel ID (GANTI DENGAN MILIK ANDA)
 const BOT_TOKEN = '6876560897:AAEVkkvsFirio_tYbBM8WDBg0giLgcsT89M';
+const CHANNEL_ID = '-1004129850269'; 
 const bot = new Telegraf(BOT_TOKEN);
 
-// ✅ TeraBox URL Validation  
-const teraboxUrlRegex = /^https:\/\/(terabox\.com|1024terabox\.com|teraboxapp\.com|teraboxlink\.com|terasharelink\.com|terafileshare\.com)\/s\/[A-Za-z0-9-_]+$/;
-
-// ✅ Your Telegram Channel ID  
-const CHANNEL_ID = "-1004129850269"; // 🔹 Ganti dengan ID channel Anda
-
-// ✅ Path to cookies file
+// ✅ Path ke file cookies
 const COOKIES_PATH = path.join(process.cwd(), 'terabox.txt');
 
-// ✅ Function to read cookies from file
+// ✅ Regex untuk validasi URL TeraBox
+const teraboxUrlRegex = /^https:\/\/(terabox\.com|1024terabox\.com|teraboxapp\.com)\/s\/[A-Za-z0-9_-]+/;
+
+// ✅ Baca cookies dari file
 function getCookies() {
-    try {
-        if (!fs.existsSync(COOKIES_PATH)) {
-            console.error('❌ Cookies file not found!');
-            return null;
-        }
-        return fs.readFileSync(COOKIES_PATH, 'utf-8').trim();
-    } catch (err) {
-        console.error('❌ Error reading cookies file:', err);
-        return null;
-    }
+  if (!fs.existsSync(COOKIES_PATH)) {
+    console.error('❌ File cookies (terabox.txt) tidak ditemukan!');
+    return null;
+  }
+  return fs.readFileSync(COOKIES_PATH, 'utf-8').trim();
 }
 
-// ✅ /start Command  
+// ✅ Ekstrak link download dari HTML TeraBox
+async function getDownloadLink(url, cookies) {
+  try {
+    const headers = {
+      'Cookie': cookies,
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    };
+
+    // 1. Ambil HTML halaman TeraBox
+    const response = await axios.get(url, { headers });
+    const html = response.data;
+
+    // 2. Cari link download di HTML (contoh: pola regex sederhana)
+    const directLinkMatch = html.match(/https:\/\/[^"]+?\/file\/[^"]+/);
+    if (!directLinkMatch) throw new Error('Link download tidak ditemukan di HTML.');
+
+    const directLink = directLinkMatch[0];
+
+    // 3. Ambil nama file dari URL atau HTML
+    const filenameMatch = html.match(/<title>([^<]+)<\/title>/);
+    const filename = filenameMatch ? filenameMatch[1].trim() : 'file_terabox';
+
+    return { directLink, filename };
+  } catch (error) {
+    console.error('Error ekstrak link:', error);
+    throw new Error('Gagal mengambil link download.');
+  }
+}
+
+// ✅ Command /start
 bot.start((ctx) => {
-    const welcomeMessage = '👋 Welcome! Send a TeraBox link to download.';
-    const imageUrl = 'https://graph.org/file/4e8a1172e8ba4b7a0bdfa.jpg';
-
-    ctx.replyWithPhoto(
-        { url: imageUrl },
-        {
-            caption: welcomeMessage,
-            parse_mode: 'Markdown',
-            ...Markup.inlineKeyboard([
-                [Markup.button.url('📌 US ❖ 𝐖𝐃 𝐙𝐎𝐍𝐄 ❖', 'https://t.me/Opleech_WD')]
-            ])
-        }
-    );
+  ctx.replyWithPhoto(
+    'https://graph.org/file/4e8a1172e8ba4b7a0bdfa.jpg',
+    {
+      caption: '👋 Kirim link TeraBox untuk mendapatkan link download langsung!',
+      ...Markup.inlineKeyboard([
+        [Markup.button.url('📢 Channel', 'https://t.me/Opleech_WD')]
+      ])
+    }
+  );
 });
 
-// ✅ Message Handler  
+// ✅ Handler Pesan
 bot.on('text', async (ctx) => {
-    const messageText = ctx.message.text;
+  const url = ctx.message.text;
 
-    if (!teraboxUrlRegex.test(messageText)) {
-        return ctx.reply('❌ Invalid TeraBox link!');
-    }
+  if (!teraboxUrlRegex.test(url)) {
+    return ctx.reply('❌ Format link TeraBox tidak valid! Contoh: https://terabox.com/s/xxx');
+  }
 
-    await ctx.reply('🔄 Processing your link...');
+  const cookies = getCookies();
+  if (!cookies) return ctx.reply('❌ Cookies TeraBox tidak ditemukan!');
 
-    try {
-        // ✅ Get cookies from file
-        const cookies = getCookies();
-        if (!cookies) {
-            return ctx.reply('❌ Cookies not found. Please check the server.');
-        }
+  await ctx.reply('🔄 Memproses link...');
 
-        // ✅ TeraBox API Call with cookies
-        const apiUrl = `https://unchinkywp.vercel.app/api?url=${encodeURIComponent(messageText)}`;
-        const apiResponse = await fetch(apiUrl, {
-            headers: {
-                'Cookie': cookies,
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
-        
-        if (!apiResponse.ok) {
-            return ctx.reply('⚠️ Failed to fetch download link. API error.');
-        }
+  try {
+    // 1. Dapatkan link download
+    const { directLink, filename } = await getDownloadLink(url, cookies);
 
-        const apiData = await apiResponse.json();
+    // 2. Kirim hasil ke pengguna
+    await ctx.replyWithPhoto(
+      'https://graph.org/file/120e174a9161afae40914.jpg',
+      {
+        caption: `✅ **Download Ready!**\n📁 ${filename}\n🔗 [Klik untuk download](${directLink})`,
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.url('⬇️ Download', directLink)]
+        ])
+      }
+    );
 
-        if (!apiData["📜 Extracted Info"]?.length) {
-            return ctx.reply('⚠️ Download link not found.');
-        }
+    // 3. Forward ke channel
+    await ctx.telegram.sendMessage(
+      CHANNEL_ID,
+      `📥 **New Download**\n\n📂 ${filename}\n🔗 ${directLink}`,
+      { disable_web_page_preview: true }
+    );
 
-        const fileInfo = apiData["📜 Extracted Info"][0];
-        const downloadLink = fileInfo["🔽 Direct Download Link"];
-        const filename = fileInfo["📂 Title"] || `video_${Date.now()}.mp4`;
-
-        // ✅ Format file size and estimate download time
-        let fileSize = "Unknown Size";
-        let estimatedTime = "N/A";
-        if (fileInfo["📏 Size"]) {
-            fileSize = fileInfo["📏 Size"];
-            estimatedTime = calculateDownloadTime(fileSize);
-        }
-
-        // ✅ Image Link  
-        const imageUrl = 'https://graph.org/file/120e174a9161afae40914.jpg';
-
-        // ✅ Send Image with Caption & Download Button
-        const caption = `🎬 **File Processing Done!**\n✅ **Download Link Found:**\n📁 **File:** ${filename}\n⚖ **Size:** ${fileSize}\n⏳ **Estimated Time:** ${estimatedTime}`;
-
-        await ctx.replyWithPhoto(imageUrl, {
-            caption: caption,
-            parse_mode: 'Markdown',
-            ...Markup.inlineKeyboard([
-                [Markup.button.url(`⬇️ 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝 (${fileSize})`, downloadLink)]
-            ])
-        });
-
-        // ✅ Auto-forward to channel
-        await bot.telegram.sendMessage(CHANNEL_ID, `📥 **New Download Request**\n\n📁 **File:** ${filename}\n⚖ **Size:** ${fileSize}\n⏳ **Estimated Time:** ${estimatedTime}\n🔗 **Download Link:** [Click Here](${downloadLink})`, {
-            parse_mode: "Markdown",
-            disable_web_page_preview: true
-        });
-
-    } catch (error) {
-        console.error('API Error:', error);
-        ctx.reply('❌ An error occurred while processing your request.');
-    }
+  } catch (error) {
+    console.error(error);
+    ctx.reply('❌ Gagal memproses link. Pastikan cookies valid atau coba lagi nanti.');
+  }
 });
 
-// ✅ Download time calculator
-function calculateDownloadTime(sizeStr) {
-    const speedMbps = 10; // 🔹 Default internet speed (10 Mbps)
-    const sizeUnits = { "B": 1, "KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3 };
-
-    let sizeValue = parseFloat(sizeStr);
-    let sizeUnit = sizeStr.replace(/[0-9.]/g, '').trim();
-
-    if (!sizeUnits[sizeUnit]) return "N/A";
-
-    let sizeInBytes = sizeValue * sizeUnits[sizeUnit];
-    let downloadTimeSec = (sizeInBytes * 8) / (speedMbps * 1024 * 1024);
-
-    if (downloadTimeSec < 60) return `${Math.round(downloadTimeSec)} sec`;
-    else return `${(downloadTimeSec / 60).toFixed(1)} min`;
-}
-
-// ✅ Error Handling
-bot.catch((err) => {
-    console.error('🤖 Bot Crashed! Error:', err);
-});
-
-// ✅ Start Polling
-bot.launch().then(() => {
-    console.log('🤖 Bot is running (Polling Mode)...');
-}).catch(err => {
-    console.error('Bot Launch Error:', err);
-});
+// ✅ Jalankan Bot
+bot.launch();
+console.log('🤖 Bot running...');
