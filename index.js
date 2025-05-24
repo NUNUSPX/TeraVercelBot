@@ -4,13 +4,20 @@ import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
 
-// ✅ Config (GANTI DENGAN DATA ANDA!)
-const BOT_TOKEN = process.env.BOT_TOKEN || '6876560897:AAEVkkvsFirio_tYbBM8WDBg0giLgcsT89M';
-const CHANNEL_ID = process.env.CHANNEL_ID || '-1004129850269';
-const ADMIN_ID = process.env.ADMIN_ID || '123456789'; // ID Telegram admin
-const VERCEL_URL = process.env.VERCEL_URL; // Contoh: your-app.vercel.app
+// ====================== 🛠 KONFIGURASI ======================
+// 🔧 SESUAIKAN BAGIAN INI DENGAN DATA ANDA!
+const CONFIG = {
+  BOT_TOKEN: '6876560897:AAE5_R0YP8M8M3Hu2maggR9dQrJt4_z2EN8', // Token bot Telegram
+  CHANNEL_ID: '-1004129850269', // ID channel untuk log
+  ADMIN_ID: '5115308362', // ID Telegram admin (untuk command /log)
+  VERCEL_URL: 'nama-app-anda.vercel.app', // URL deployment Vercel
+  TERABOX_COOKIES: 'ndus=abc123; csrf_token=xyz456', // Cookies TeraBox (alternatif dari file)
+  IMAGE_START: 'https://graph.org/file/4e8a1172e8ba4b7a0bdfa.jpg', // Gambar untuk /start
+  IMAGE_SUCCESS: 'https://graph.org/file/120e174a9161afae40914.jpg' // Gambar hasil download
+};
+// ============================================================
 
-const bot = new Telegraf(BOT_TOKEN);
+const bot = new Telegraf(CONFIG.BOT_TOKEN);
 const app = express();
 
 // ✅ Path file
@@ -32,11 +39,9 @@ function writeLog(action, user = 'System') {
   fs.appendFileSync(LOG_PATH, logEntry);
 }
 
-// ✅ Baca cookies (file atau env variable)
+// ✅ Baca cookies (prioritaskan variabel CONFIG)
 function getCookies() {
-  if (process.env.TERABOX_COOKIES) {
-    return process.env.TERABOX_COOKIES; // Prioritaskan env variable
-  }
+  if (CONFIG.TERABOX_COOKIES) return CONFIG.TERABOX_COOKIES;
   if (fs.existsSync(COOKIES_PATH)) {
     return fs.readFileSync(COOKIES_PATH, 'utf-8').trim();
   }
@@ -54,7 +59,7 @@ async function getDownloadLink(url, cookies) {
     const response = await axios.get(url, { headers });
     const html = response.data;
 
-    // Cari link download di HTML (contoh regex sederhana)
+    // Cari link download di HTML
     const directLinkMatch = html.match(/https:\/\/[^"]+?\/file\/[^"]+/);
     if (!directLinkMatch) throw new Error('Link tidak ditemukan di HTML.');
 
@@ -68,11 +73,12 @@ async function getDownloadLink(url, cookies) {
   }
 }
 
+// ====================== 🚀 HANDLER BOT ======================
 // ✅ Command /start
 bot.start((ctx) => {
   writeLog(`Bot started by ${ctx.from.username}`, ctx.from.id);
   ctx.replyWithPhoto(
-    'https://graph.org/file/4e8a1172e8ba4b7a0bdfa.jpg',
+    CONFIG.IMAGE_START,
     {
       caption: '👋 Kirim link TeraBox untuk download!',
       ...Markup.inlineKeyboard([
@@ -84,12 +90,10 @@ bot.start((ctx) => {
 
 // ✅ Command /log (Admin-only)
 bot.command('log', async (ctx) => {
-  if (String(ctx.from.id) !== ADMIN_ID) {
+  if (String(ctx.from.id) !== CONFIG.ADMIN_ID) {
     writeLog(`Unauthorized /log attempt by ${ctx.from.username}`, ctx.from.id);
     return ctx.reply('❌ Hanya admin yang bisa akses log!');
   }
-
-  writeLog('Admin accessed logs', ctx.from.username);
   await ctx.replyWithDocument({ source: fs.createReadStream(LOG_PATH), filename: 'bot.log' });
 });
 
@@ -103,16 +107,14 @@ bot.on('text', async (ctx) => {
     return ctx.reply('❌ Format link tidak valid! Contoh: https://terabox.com/s/xxx');
   }
 
-  writeLog(`Processing link: ${url}`, user);
   await ctx.reply('🔄 Memproses link...');
-
   try {
     const cookies = getCookies();
     if (!cookies) return ctx.reply('❌ Cookies TeraBox tidak ditemukan!');
 
     const { directLink, filename } = await getDownloadLink(url, cookies);
     await ctx.replyWithPhoto(
-      'https://graph.org/file/120e174a9161afae40914.jpg',
+      CONFIG.IMAGE_SUCCESS,
       {
         caption: `✅ **Siap Download!**\n📁 ${filename}\n🔗 [Klik disini](${directLink})`,
         parse_mode: 'Markdown',
@@ -128,18 +130,20 @@ bot.on('text', async (ctx) => {
   }
 });
 
-// ✅ Webhook untuk Vercel
+// ====================== 🌐 WEBHOOK SETUP ======================
 if (process.env.VERCEL) {
-  bot.telegram.setWebhook(`https://${VERCEL_URL}/api`);
+  // Mode production (Vercel)
+  bot.telegram.setWebhook(`https://${CONFIG.VERCEL_URL}/api`);
   app.use(bot.webhookCallback('/api'));
+  app.get('/', (req, res) => res.send('🤖 Bot is running (Webhook Mode)'));
 } else {
-  bot.launch(); // Polling untuk development lokal
+  // Mode development (Polling)
+  bot.launch();
+  console.log('🤖 Bot running in polling mode...');
 }
 
-// ✅ Express endpoint
-app.get('/', (req, res) => res.send('🤖 Bot is running!'));
-app.listen(3000, () => console.log('Server ready'));
-
-// ✅ Log bot status
-writeLog('Bot launched', 'System');
-console.log('🚀 Bot running...');
+// ✅ Start server
+app.listen(3000, () => {
+  writeLog('Bot launched', 'System');
+  console.log('🚀 Server ready on port 3000');
+});
