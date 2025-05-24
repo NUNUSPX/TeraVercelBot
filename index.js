@@ -10,7 +10,7 @@ const CONFIG = {
   BOT_TOKEN: '6876560897:AAE5_R0YP8M8M3Hu2maggR9dQrJt4_z2EN8', // Token bot Telegram
   CHANNEL_ID: '-1004129850269', // ID channel untuk log
   ADMIN_ID: '5115308362', // ID Telegram admin (untuk command /log)
-  VERCEL_URL: 'nama-app-anda.vercel.app', // URL deployment Vercel
+  VERCEL_URL: 'https://tera-vercel-bot.vercel.app', // URL deployment Vercel
   TERABOX_COOKIES: 'ndus=abc123; csrf_token=xyz456', // Cookies TeraBox (alternatif dari file)
   IMAGE_START: 'https://graph.org/file/4e8a1172e8ba4b7a0bdfa.jpg', // Gambar untuk /start
   IMAGE_SUCCESS: 'https://graph.org/file/120e174a9161afae40914.jpg' // Gambar hasil download
